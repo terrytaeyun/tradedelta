@@ -3,7 +3,8 @@
 import json
 import sys
 import time
-from urllib.error import URLError
+from http.client import HTTPException
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 
@@ -13,7 +14,7 @@ def main(base_url="http://127.0.0.1:8000"):
             with urlopen(f"{base_url}/api/status", timeout=2) as response:
                 status = json.load(response)
             break
-        except URLError:
+        except (OSError, HTTPException):
             if attempt == 19:
                 raise
             time.sleep(1)
@@ -33,6 +34,14 @@ def main(base_url="http://127.0.0.1:8000"):
     assert result["comparison"]["change_usd"] == 1_240_258_000
     assert result["claims"][0]["source_ids"] == ["contribution"]
     assert "get_trade_comparison" in result["tools"]
+
+    invalid = Request(f"{base_url}/api/compare", data=b'{"source":"sample","base":"2020"}',
+                      headers={"Content-Type": "application/json"})
+    try:
+        with urlopen(invalid, timeout=5):
+            raise AssertionError("An unsupported sample period was accepted")
+    except HTTPError as error:
+        assert error.code == 422
     print("FastAPI health, browser route, API schema, comparison and citations passed.")
 
 
