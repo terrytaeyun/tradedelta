@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TradeDelta | 무역 데이터 질의</title>
+  <style>
+    :root { color-scheme: light; --ink: #172a2b; --muted: #47605f; --paper: #f2f7f4; --line: #c4d6cf; --accent: #17634f; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.55 system-ui, sans-serif; }
+    main { margin: auto; max-width: 920px; padding: 2.6rem clamp(1rem, 5vw, 3rem); }
+    header { border-bottom: 1px solid var(--line); margin-bottom: 1.5rem; padding-bottom: .75rem; }
+    h1 { font-size: clamp(2.3rem, 6vw, 4rem); line-height: 1; letter-spacing: -.065em; margin: 0 0 .65rem; }
+    h2 { font-size: 1.22rem; margin: 0 0 .65rem; }
+    h3 { font-size: 1rem; }
+    p { margin: .45rem 0 .8rem; }
+    header p, #availability, .context { color: var(--muted); }
+    section, form { background: white; border: 1px solid var(--line); border-radius: 12px; padding: clamp(1rem, 3vw, 1.6rem); margin-bottom: 1rem; }
+    label { display: block; font-weight: 650; }
+    select, input:not([type=checkbox]), textarea, button { font: inherit; }
+    select, textarea, input:not([type=checkbox]) { width: 100%; background: white; color: inherit; border: 1px solid #91a9a3; border-radius: 6px; padding: .53rem .65rem; margin-top: .25rem; }
+    textarea { min-height: 5em; resize: vertical; }
+    fieldset { padding: 0; margin: 1rem 0; border: 0; }
+    legend { padding: 0; margin-bottom: .4rem; font-weight: 700; }
+    .fields { display: grid; gap: .65rem; grid-template-columns: repeat(auto-fit, minmax(144px, 1fr)); margin-top: .7rem; }
+    .actions { display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; }
+    button { border: 0; border-radius: 6px; padding: .6rem 1rem; background: var(--accent); color: white; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .65; cursor: progress; }
+    a { color: var(--accent); text-underline-offset: .2em; }
+    #notice { min-height: 1.5em; color: #884123; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+    th, td { border-bottom: 1px solid var(--line); padding: .6rem .5rem; text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    summary { cursor: pointer; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>TradeDelta</h1>
+    <p>한국 수출 변화를 비교하고, 통계의 근거를 찾아보세요.</p>
+  </header>
+  <form id="question-form">
+    <label for="question">질문</label>
+    <textarea id="question" required maxlength="600">2024년과 2025년 한국 화장품 수출을 비교하고, 성장률 기여도는 어떻게 계산하는지 설명해줘.</textarea>
+    <fieldset>
+      <legend>데이터</legend>
+      <label for="mode">조회 범위</label>
+      <select id="mode">
+        <option value="sample">화장품 수출 샘플 · 2024–2025</option>
+        <option value="customs" disabled>관세청 월별 조회</option>
+        <option value="notes">통계 문서만 검색</option>
+      </select>
+      <div class="fields" id="customs-fields" hidden>
+        <label>기준 월<input id="base" type="month" value="2025-10"></label>
+        <label>비교 월<input id="target" type="month" value="2026-10"></label>
+        <label>국가 코드<input id="partners" value="US, CN, JP" maxlength="20"></label>
+        <label>HS 코드<input id="hs" value="330499" inputmode="numeric" maxlength="10"></label>
+      </div>
+    </fieldset>
+    <div class="actions">
+      <button id="submit">결과 보기</button>
+      <label><input id="agent" type="checkbox" disabled> LLM 에이전트로 설명</label>
+      <a href="/docs">API 명세</a>
+    </div>
+    <p id="availability" role="status"></p>
+  </form>
+  <p id="notice" role="status" aria-live="polite"></p>
+  <div id="results"></div>
+</main>
+<script>
+  const byId = id => document.getElementById(id);
+  const mode = byId('mode');
+  const results = byId('results');
+  const notice = byId('notice');
+  const number = Intl.NumberFormat('ko-KR');
+
+  function add(parent, tag, text) {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    parent.append(node);
+    return node;
+  }
+
+  function sourceLink(parent, source) {
+    const link = add(parent, 'a', source.title);
+    link.href = source.url;
+  }
+
+  function addComparison(parent, report) {
+    const section = add(parent, 'section');
+    add(section, 'h2', '수출액 비교');
+    add(section, 'p', `${report.coverage} · ${report.base_period} → ${report.target_period}`);
+    const growth = report.growth_pct === null ? '성장률 산출 불가' : `${report.growth_pct.toFixed(2)}%`;
+    add(section, 'p', `${number.format(report.base_usd)} → ${number.format(report.target_usd)} USD (${growth})`);
+    const wrapping = add(section, 'div');
+    wrapping.className = 'table-wrap';
+    const table = add(wrapping, 'table');
+    const header = add(add(table, 'thead'), 'tr');
+    for (const heading of ['시장', '기준 USD', '비교 USD', '증감 USD', '기여도']) add(header, 'th', heading).scope = 'col';
+    const labels = {'United States': '미국', China: '중국', Japan: '일본', 'Other destinations': '기타 시장'};
+    const body = add(table, 'tbody');
+    for (const row of report.rows) {
+      const line = add(body, 'tr');
+      add(line, 'th', row.group.map(group => labels[group] ?? group).join(' / ')).scope = 'row';
+      for (const value of [row.base_usd, row.target_usd, row.change_usd]) add(line, 'td', number.format(value));
+      add(line, 'td', row.contribution_pp === null ? '—' : `${row.contribution_pp.toFixed(2)}%p`);
+    }
+    sourceLink(add(section, 'p'), {title: report.source_name, url: report.source_url});
+  }
+
+  function render(data) {
+    results.replaceChildren();
+    if (data.comparison) addComparison(results, data.comparison);
+    const section = add(results, 'section');
+    add(section, 'h2', data.mode === 'agent' ? '근거 기반 답변' : '문서 근거 발췌');
+    const sources = Object.fromEntries(data.sources.map(source => [source.id, source]));
+    if (data.message) add(section, 'p', data.message);
+    if (!data.message && !data.claims.length) add(section, 'p', '문서 설명 없이 수출 비교 결과를 표시했습니다.');
+    for (const claim of data.claims) {
+      add(section, 'p', claim.text);
+      const citations = add(section, 'ul');
+      for (const id of claim.source_ids) sourceLink(add(citations, 'li'), sources[id]);
+    }
+    const trace = add(section, 'details');
+    add(trace, 'summary', '실행한 도구');
+    add(trace, 'p', data.tools.join(' · '));
+  }
+
+  mode.addEventListener('change', () => { byId('customs-fields').hidden = mode.value !== 'customs'; });
+  byId('question-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    results.replaceChildren();
+    notice.textContent = '데이터와 근거를 확인하는 중…';
+    byId('submit').disabled = true;
+    let trade = mode.value === 'sample' ? {source: 'sample'} : null;
+    if (mode.value === 'customs') {
+      trade = {source: 'customs', base: byId('base').value, target: byId('target').value,
+               partners: byId('partners').value.toUpperCase().split(/[,\s]+/).filter(Boolean), hs: byId('hs').value};
+    }
+    try {
+      const response = await fetch('/api/ask', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({question: byId('question').value, trade, use_model: byId('agent').checked})});
+      const data = await response.json();
+      if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '입력한 질문과 조회 범위를 확인하세요.');
+      render(data);
+      notice.textContent = '';
+    } catch (error) {
+      notice.textContent = error.message || '서버 응답을 확인할 수 없습니다.';
+    } finally {
+      byId('submit').disabled = false;
+    }
+  });
+
+  fetch('/api/status').then(response => response.json()).then(data => {
+    mode.querySelector('option[value="customs"]').disabled = !data.customs_configured;
+    byId('agent').disabled = !data.model_configured;
+    const active = [data.customs_configured ? '관세청 조회 사용 가능' : '샘플 데이터 사용 가능',
+                    data.model_configured ? `모델 ${data.model}` : '근거 발췌 모드 사용 가능'];
+    byId('availability').textContent = active.join(' · ');
+  }).catch(() => { byId('availability').textContent = '서버 상태를 확인할 수 없습니다.'; });
+</script>
+</body>
+</html>

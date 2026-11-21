@@ -1,0 +1,25 @@
+name: Verify TradeDelta
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run unit and retrieval tests
+        run: python3 -m unittest -v
+      - name: Build and smoke-test the container
+        run: |
+          docker build -t tradedelta:test .
+          docker run -d --name tradedelta-test -p 127.0.0.1:8000:8000 tradedelta:test
+          python3 scripts/smoke_service.py
+      - name: Show server logs on failure
+        if: failure()
+        run: docker logs tradedelta-test || true
