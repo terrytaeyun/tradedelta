@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TradeDelta | 2024 to 2025</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #162a2d;
+      --muted: #4b6064;
+      --line: #d1dfdc;
+      --paper: #f3f7f5;
+      --positive: #007d69;
+      --negative: #b0422d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 1024px; margin: auto; padding: 2.5rem clamp(1rem, 4.5vw, 3rem) 3rem; }
+    .brand, dt, .units { color: var(--muted); font-size: .8rem; }
+    .brand { margin: 0; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { font: 500 clamp(2.1rem, 5vw, 4.3rem)/1.02 Georgia, serif; letter-spacing: -.04em; margin: .75rem 0; }
+    h2 { font-size: 1.15rem; margin: 0 0 1rem; }
+    p { margin: .5rem 0; }
+    .scope { color: var(--muted); max-width: 68ch; }
+    dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 1.8rem 0; border-block: 1px solid var(--line); }
+    dl > div { padding: 1rem .75rem; }
+    dl > div + div { border-inline-start: 1px solid var(--line); }
+    dd { margin: .25rem 0 0; font-size: clamp(.82rem, 2.3vw, 1.4rem); font-weight: 700; overflow-wrap: anywhere; }
+    dd small { display: block; font-size: .82rem; }
+    .chart, details { background: white; border: 1px solid var(--line); border-radius: .75rem; padding: clamp(.8rem, 2vw, 1.4rem); }
+    .chart { margin-block: 1.25rem; }
+    .bar-row { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(36px, 2.3fr) minmax(7.9rem, auto); gap: .65rem; align-items: center; padding: .5rem 0; }
+    .bar-row span { overflow-wrap: anywhere; }
+    .bar-row strong { text-align: right; }
+    .track { position: relative; height: 1.3rem; background: linear-gradient(to right, #f3f6f4 49.7%, #9caead 49.7% 50.3%, #f3f6f4 50.3%); }
+    .track i { position: absolute; top: .15rem; bottom: .15rem; }
+    .track .positive { left: 50%; background: var(--positive); }
+    .track .negative { right: 50%; background: var(--negative); }
+    summary { font-weight: 700; cursor: pointer; }
+    .table-scroll { overflow-x: auto; margin-top: .75rem; }
+    table { border-collapse: collapse; width: 100%; white-space: nowrap; }
+    th, td { padding: .55rem; border-bottom: 1px solid var(--line); text-align: right; }
+    th:first-child { text-align: left; }
+    .bar-row, table, dd { font-variant-numeric: tabular-nums; }
+    footer { font-size: .9rem; color: var(--muted); margin-top: 1.35rem; }
+    a { color: #00665b; }
+    @media (max-width: 460px) {
+      .bar-row { grid-template-columns: minmax(4.5rem, 1.1fr) minmax(32px, 1fr) minmax(6.65rem, auto); gap: .45rem; font-size: .75rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="brand">TradeDelta</p>
+      <h1>What moved Korea’s cosmetics exports?</h1>
+      <p class="scope">South Korea’s cosmetics exports to the US, China, Japan and all other destinations. Other destinations equal the published world total minus the three named markets.</p>
+    </header>
+    <dl aria-label="Comparison totals">
+      <div><dt>2024 · USD</dt><dd>10,177,312,000</dd></div>
+      <div><dt>2025 · USD</dt><dd>11,417,570,000</dd></div>
+      <div><dt>Change · USD</dt><dd>+1,240,258,000 <small>+12.19%</small></dd></div>
+    </dl>
+    <section class="chart" aria-labelledby="chart-title">
+      <h2 id="chart-title">Change by partner <span class="units">· USD</span></h2>
+      <div class="bar-row"><span>Other destinations</span><div class="track" aria-hidden="true"><i class="positive" style="width:50.0000%"></i></div><strong>+1,377,860,000</strong></div>
+<div class="bar-row"><span>United States</span><div class="track" aria-hidden="true"><i class="positive" style="width:10.3422%"></i></div><strong>+285,002,000</strong></div>
+<div class="bar-row"><span>Japan</span><div class="track" aria-hidden="true"><i class="positive" style="width:1.8564%"></i></div><strong>+51,158,000</strong></div>
+<div class="bar-row"><span>China</span><div class="track" aria-hidden="true"><i class="negative" style="width:17.1919%"></i></div><strong>-473,762,000</strong></div>
+    </section>
+    <details>
+      <summary>View values and contributions</summary>
+      <div class="table-scroll" role="region" aria-label="Trade contribution table" tabindex="0">
+        <table>
+          <thead><tr><th scope="col">Group</th><th scope="col">2024 USD</th><th scope="col">2025 USD</th><th scope="col">Change USD</th><th scope="col">Contribution</th></tr></thead>
+          <tbody><tr><th scope="row">Other destinations</th><td>4,750,460,000</td><td>6,128,320,000</td><td>+1,377,860,000</td><td>+13.54 pp</td></tr>
+<tr><th scope="row">United States</th><td>1,899,196,000</td><td>2,184,198,000</td><td>+285,002,000</td><td>+2.80 pp</td></tr>
+<tr><th scope="row">Japan</th><td>1,035,583,000</td><td>1,086,741,000</td><td>+51,158,000</td><td>+0.50 pp</td></tr>
+<tr><th scope="row">China</th><td>2,492,073,000</td><td>2,018,311,000</td><td>-473,762,000</td><td>-4.66 pp</td></tr></tbody>
+        </table>
+      </div>
+      <p class="units">Each contribution equals the group’s change divided by total base-period trade, expressed in percentage points. Displayed values are rounded. A zero base leaves growth and contributions undefined.</p>
+    </details>
+    <footer>Source · <a href="https://www.mfds.go.kr/brd/m_99/view.do?seq=50010">MFDS release, 22 May 2026, p. 15</a></footer>
+  </main>
+</body>
+</html>

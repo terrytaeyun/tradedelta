@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TradeDelta | $base_period to $target_period</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #162a2d;
+      --muted: #4b6064;
+      --line: #d1dfdc;
+      --paper: #f3f7f5;
+      --positive: #007d69;
+      --negative: #b0422d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 1024px; margin: auto; padding: 2.5rem clamp(1rem, 4.5vw, 3rem) 3rem; }
+    .brand, dt, .units { color: var(--muted); font-size: .8rem; }
+    .brand { margin: 0; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { font: 500 clamp(2.1rem, 5vw, 4.3rem)/1.02 Georgia, serif; letter-spacing: -.04em; margin: .75rem 0; }
+    h2 { font-size: 1.15rem; margin: 0 0 1rem; }
+    p { margin: .5rem 0; }
+    .scope { color: var(--muted); max-width: 68ch; }
+    dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 1.8rem 0; border-block: 1px solid var(--line); }
+    dl > div { padding: 1rem .75rem; }
+    dl > div + div { border-inline-start: 1px solid var(--line); }
+    dd { margin: .25rem 0 0; font-size: clamp(.82rem, 2.3vw, 1.4rem); font-weight: 700; overflow-wrap: anywhere; }
+    dd small { display: block; font-size: .82rem; }
+    .chart, details { background: white; border: 1px solid var(--line); border-radius: .75rem; padding: clamp(.8rem, 2vw, 1.4rem); }
+    .chart { margin-block: 1.25rem; }
+    .bar-row { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(36px, 2.3fr) minmax(7.9rem, auto); gap: .65rem; align-items: center; padding: .5rem 0; }
+    .bar-row span { overflow-wrap: anywhere; }
+    .bar-row strong { text-align: right; }
+    .track { position: relative; height: 1.3rem; background: linear-gradient(to right, #f3f6f4 49.7%, #9caead 49.7% 50.3%, #f3f6f4 50.3%); }
+    .track i { position: absolute; top: .15rem; bottom: .15rem; }
+    .track .positive { left: 50%; background: var(--positive); }
+    .track .negative { right: 50%; background: var(--negative); }
+    summary { font-weight: 700; cursor: pointer; }
+    .table-scroll { overflow-x: auto; margin-top: .75rem; }
+    table { border-collapse: collapse; width: 100%; white-space: nowrap; }
+    th, td { padding: .55rem; border-bottom: 1px solid var(--line); text-align: right; }
+    th:first-child { text-align: left; }
+    .bar-row, table, dd { font-variant-numeric: tabular-nums; }
+    footer { font-size: .9rem; color: var(--muted); margin-top: 1.35rem; }
+    a { color: #00665b; }
+    @media (max-width: 460px) {
+      .bar-row { grid-template-columns: minmax(4.5rem, 1.1fr) minmax(32px, 1fr) minmax(6.65rem, auto); gap: .45rem; font-size: .75rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="brand">TradeDelta</p>
+      <h1>$headline</h1>
+      <p class="scope">$coverage</p>
+    </header>
+    <dl aria-label="Comparison totals">
+      <div><dt>$base_period · USD</dt><dd>$base_usd</dd></div>
+      <div><dt>$target_period · USD</dt><dd>$target_usd</dd></div>
+      <div><dt>Change · USD</dt><dd>$change_usd <small>$growth</small></dd></div>
+    </dl>
+    <section class="chart" aria-labelledby="chart-title">
+      <h2 id="chart-title">Change by $group_by <span class="units">· USD</span></h2>
+      $bars
+    </section>
+    <details>
+      <summary>View values and contributions</summary>
+      <div class="table-scroll" role="region" aria-label="Trade contribution table" tabindex="0">
+        <table>
+          <thead><tr><th scope="col">Group</th><th scope="col">$base_period USD</th><th scope="col">$target_period USD</th><th scope="col">Change USD</th><th scope="col">Contribution</th></tr></thead>
+          <tbody>$rows</tbody>
+        </table>
+      </div>
+      <p class="units">Each contribution equals the group’s change divided by total base-period trade, expressed in percentage points. Displayed values are rounded. A zero base leaves growth and contributions undefined.</p>
+    </details>
+    <footer>Source · $source</footer>
+  </main>
+</body>
+</html>
