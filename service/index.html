@@ -127,6 +127,20 @@
     const trace = add(section, 'details');
     add(trace, 'summary', '실행한 도구');
     add(trace, 'p', data.tools.join(' · '));
+    if (data.retrieval) {
+      const {query, note_ids} = data.retrieval;
+      add(trace, 'p', `문서 검색어 · ${query}`);
+      add(trace, 'p', `찾은 근거 ${note_ids.length}건`);
+      if (note_ids.length && data.mode === 'agent') {
+        const notes = add(trace, 'ul');
+        for (const id of note_ids) {
+          const note = sources[id];
+          const item = add(notes, 'li');
+          sourceLink(item, note);
+          add(item, 'p', note.text);
+        }
+      }
+    }
   }
 
   mode.addEventListener('change', () => { byId('customs-fields').hidden = mode.value !== 'customs'; });

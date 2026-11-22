@@ -20,6 +20,25 @@ def generated_answer(source):
     return {"output": [{"type": "message", "content": [{"type": "output_text", "text": json.dumps(data)}]}]}
 
 
+RETRIEVAL_CASES = {
+    "FOB와 CIF는 어떤 기준이야?": "valuation-basis",
+    "HS 품목 코드는 무엇인가요?": "coverage-and-hs",
+    "잠정 통계는 언제 갱신돼?": "revisions",
+    "성장률 기여도의 분모가 뭐야?": "contribution",
+    "샘플의 기타 시장은 어떻게 정의돼?": "sample-method",
+    "코스맥스 기업 실적과 수요를 어떻게 해석하지?": "interpretation",
+    "수출 금액기준이 뭐야?": "valuation-basis",
+    "수출액은 어떤 기준이야?": "valuation-basis",
+    "ＨＳ가 뭐야?": "coverage-and-hs",
+    "전월자료를 언제 올려?": "revisions",
+    "퍼센트 포인트는 뭐야?": "contribution",
+    "시험 점수는 어떻게 계산해?": None,
+    "신발을 고르는 데 어떤 기준이 좋아?": None,
+    "MATHS 시험이 어려워": None,
+    "동영상 수정 방법 알려줘": None,
+}
+
+
 class CustomsTests(unittest.TestCase):
     def test_parse_exact_month_partner_and_code(self):
         self.assertEqual(parse_observation(XML, "2025-10", "US", "330499"), 120_000)
@@ -49,17 +68,10 @@ class CustomsTests(unittest.TestCase):
 
 class AssistantTests(unittest.TestCase):
     def test_retrieval_evaluation(self):
-        questions = {
-            "FOB와 CIF는 어떤 기준이야?": "valuation-basis",
-            "HS 품목 코드는 무엇인가요?": "coverage-and-hs",
-            "잠정 통계는 언제 갱신돼?": "revisions",
-            "성장률 기여도의 분모가 뭐야?": "contribution",
-            "샘플의 기타 시장은 어떻게 정의돼?": "sample-method",
-            "코스맥스 기업 실적과 수요를 어떻게 해석하지?": "interpretation",
-        }
-        for question, expected in questions.items():
+        for question, expected in RETRIEVAL_CASES.items():
             with self.subTest(question=question):
-                self.assertEqual(retrieve_trade_notes(question)[0]["id"], expected)
+                notes = retrieve_trade_notes(question)
+                self.assertEqual(notes[0]["id"] if notes else None, expected)
 
     def test_keyless_pipeline_reconciles_numbers_and_citations(self):
         result = answer_question("수출 성장률 기여도 분모는?", lambda: build_comparison("sample", "2024", "2025"))
@@ -67,8 +79,11 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(result["comparison"]["change_usd"], 1_240_258_000)
         self.assertIn("get_trade_comparison", result["tools"])
         self.assertEqual(result["claims"][0]["source_ids"], ["contribution"])
+        self.assertEqual(result["retrieval"], {"query": "수출 성장률 기여도 분모는?", "note_ids": ["contribution"]})
         self.assertEqual(answer_question("운동화 끈 묶기")["message"], NO_EVIDENCE)
-        self.assertEqual(answer_question("왜 하늘은 파란색이야?")["message"], NO_EVIDENCE)
+        unknown = answer_question("왜 하늘은 파란색이야?")
+        self.assertEqual(unknown["message"], NO_EVIDENCE)
+        self.assertEqual(unknown["retrieval"]["note_ids"], [])
 
     def test_agent_executes_tools_then_sends_validated_evidence(self):
         selection = {"output": [tool_call("retrieve_trade_notes", {"query": "성장률 기여도"}),
@@ -80,6 +95,14 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(evidence["comparison"]["change_usd"], 1_240_258_000)
         self.assertEqual(result["claims"][0]["source_ids"], ["contribution"])
         self.assertEqual(result["mode"], "agent")
+        self.assertEqual(result["retrieval"], {"query": "성장률 기여도", "note_ids": ["contribution"]})
+
+    def test_comparison_only_agent_has_no_document_search(self):
+        selection = {"output": [tool_call("get_trade_comparison", {})]}
+        call = Mock(side_effect=[selection, generated_answer("trade-data")])
+        result = answer_question("수출은 얼마나 변했어?", lambda: build_comparison("sample", "2024", "2025"), True, call)
+        self.assertIsNone(result["retrieval"])
+        self.assertEqual([source["id"] for source in result["sources"]], ["trade-data"])
 
     def test_invalid_citations_and_tool_arguments_are_rejected(self):
         selection = {"output": [tool_call("retrieve_trade_notes", {"query": "기여도"})]}

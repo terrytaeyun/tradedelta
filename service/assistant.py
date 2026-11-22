@@ -4,6 +4,7 @@ import json
 import re
 from os import getenv
 from pathlib import Path
+from unicodedata import normalize
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -18,14 +19,32 @@ class AgentError(RuntimeError):
     pass
 
 
+def normalize_search(text):
+    text = " ".join(normalize("NFKC", text).casefold().split())
+    return re.sub(r"(?<=[가-힣]) +(?=[가-힣])", "", text)
+
+
+def compile_tag(tag):
+    literal = re.escape(tag)
+    if tag.isascii():
+        return re.compile(r"(?<![a-z0-9])" + literal + r"(?![a-z0-9])")
+    return re.compile(literal)
+
+
+SEARCH_INDEX = [
+    (note, [(compile_tag(tag), len(tag) ** 2) for tag in sorted({normalize_search(tag) for tag in note["tags"]})])
+    for note in NOTES
+]
+
+
 def retrieve_trade_notes(query, limit=3):
     """Rank matching official notes by length-weighted keyword overlap."""
-    normalized = re.sub(r"\s+", " ", query.casefold().strip())
+    normalized = normalize_search(query)
     ranked = []
-    for note in NOTES:
-        matches = [len(tag) ** 2 for tag in note["tags"] if tag.casefold() in normalized]
-        if matches:
-            ranked.append((sum(matches), note))
+    for note, patterns in SEARCH_INDEX:
+        score = sum(weight for pattern, weight in patterns if pattern.search(normalized))
+        if score:
+            ranked.append((score, note))
     ranked.sort(key=lambda match: (-match[0], match[1]["id"]))
     return [{field: note[field] for field in ("id", "title", "url", "text")}
             for _, note in ranked[:limit]]
@@ -133,7 +152,8 @@ def answer_question(question, get_comparison=None, use_model=False, call=respons
             selected["get_trade_comparison"] = None
 
     query = selected.get("retrieve_trade_notes")
-    sources = retrieve_trade_notes(query or "")
+    notes = retrieve_trade_notes(query) if query else []
+    sources = list(notes)
     comparison = get_comparison() if "get_trade_comparison" in selected else None
     if comparison is not None:
         sources.insert(0, {"id": "trade-data", "title": comparison["source_name"],
@@ -147,4 +167,5 @@ def answer_question(question, get_comparison=None, use_model=False, call=respons
 
     return {"mode": "agent" if use_model else "evidence", "tools": list(selected),
             "comparison": comparison, "sources": sources, "claims": claims,
+            "retrieval": {"query": query, "note_ids": [note["id"] for note in notes]} if query else None,
             "message": NO_EVIDENCE if not claims and comparison is None else None}

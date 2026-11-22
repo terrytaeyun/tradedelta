@@ -34,6 +34,7 @@ def main(base_url="http://127.0.0.1:8000"):
     assert result["comparison"]["change_usd"] == 1_240_258_000
     assert result["claims"][0]["source_ids"] == ["contribution"]
     assert "get_trade_comparison" in result["tools"]
+    assert result["retrieval"] == {"query": "수출 성장률 기여도 분모는?", "note_ids": ["contribution"]}
 
     invalid = Request(f"{base_url}/api/compare", data=b'{"source":"sample","base":"2020"}',
                       headers={"Content-Type": "application/json"})
