@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .assistant import DEFAULT_MODEL, AgentError, answer_question
 from .customs import TradeDataError, build_comparison
+from .exports import comparison_csv
 
 
 app = FastAPI(title="TradeDelta", version="0.2.0")
@@ -60,6 +61,9 @@ def compare_trade(scope: TradeScope):
 def ask(request: QuestionRequest):
     get_comparison = partial(compare_trade, request.trade) if request.trade else None
     try:
-        return answer_question(request.question, get_comparison, request.use_model)
+        result = answer_question(request.question, get_comparison, request.use_model)
     except AgentError as exc:
         raise HTTPException(502, str(exc)) from exc
+    comparison = result["comparison"]
+    result["comparison_csv"] = comparison_csv(comparison) if comparison is not None else None
+    return result

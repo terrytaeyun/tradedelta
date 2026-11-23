@@ -1,9 +1,12 @@
 import json
 import unittest
+from csv import DictReader
+from io import StringIO
 from unittest.mock import Mock, patch
 
 from service.assistant import NO_EVIDENCE, AgentError, answer_question, retrieve_trade_notes
 from service.customs import TradeDataError, build_comparison, parse_observation
+from service.exports import comparison_csv
 
 
 XML = b"""<response><header><resultCode>00</resultCode></header><body><items>
@@ -64,6 +67,19 @@ class CustomsTests(unittest.TestCase):
         self.assertEqual((result["base_usd"], result["target_usd"]), (300, 340))
         self.assertAlmostEqual(result["rows"][0]["contribution_pp"], 20)
         self.assertIn("US, JP", result["coverage"])
+
+
+class ExportTests(unittest.TestCase):
+    @patch.dict("os.environ", {"KCS_SERVICE_KEY": "test-only"})
+    @patch("service.customs.fetch_observation", side_effect=[0, 9_007_199_254_740_993])
+    def test_preserves_exact_dollars_and_blank_undefined_contribution(self, fetch):
+        report = build_comparison("customs", "2025-10", "2026-10", ["US"], "330499")
+        row, = DictReader(StringIO(comparison_csv(report)))
+        self.assertEqual(row["target_usd"], "9007199254740993")
+        self.assertEqual(row["change_usd"], "9007199254740993")
+        self.assertEqual(row["contribution_pp"], "")
+        self.assertEqual(row["coverage"], report["coverage"])
+        self.assertEqual(row["source_url"], report["source_url"])
 
 
 class AssistantTests(unittest.TestCase):

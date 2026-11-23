@@ -27,6 +27,8 @@
     button { border: 0; border-radius: 6px; padding: .6rem 1rem; background: var(--accent); color: white; font-weight: 700; cursor: pointer; }
     button:disabled { opacity: .65; cursor: progress; }
     a { color: var(--accent); text-underline-offset: .2em; }
+    .comparison-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .65rem; flex-wrap: wrap; }
+    .comparison-heading button { background: white; color: var(--accent); border: 1px solid var(--line); }
     #notice { min-height: 1.5em; color: #884123; }
     .table-wrap { overflow-x: auto; }
     table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
@@ -89,9 +91,27 @@
     link.href = source.url;
   }
 
-  function addComparison(parent, report) {
+  function downloadComparison(csv, report) {
+    const file = new Blob(['\uFEFF', csv], {type: 'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(file);
+    const link = add(document.body, 'a');
+    link.href = url;
+    link.download = `tradedelta-${report.base_period}-to-${report.target_period}.csv`;
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function addComparison(parent, report, csv) {
     const section = add(parent, 'section');
-    add(section, 'h2', '수출액 비교');
+    const heading = add(section, 'div');
+    heading.className = 'comparison-heading';
+    add(heading, 'h2', '수출액 비교');
+    if (csv) {
+      const download = add(heading, 'button', 'CSV 다운로드');
+      download.type = 'button';
+      download.addEventListener('click', () => downloadComparison(csv, report));
+    }
     add(section, 'p', `${report.coverage} · ${report.base_period} → ${report.target_period}`);
     const growth = report.growth_pct === null ? '성장률 산출 불가' : `${report.growth_pct.toFixed(2)}%`;
     add(section, 'p', `${number.format(report.base_usd)} → ${number.format(report.target_usd)} USD (${growth})`);
@@ -113,7 +133,7 @@
 
   function render(data) {
     results.replaceChildren();
-    if (data.comparison) addComparison(results, data.comparison);
+    if (data.comparison) addComparison(results, data.comparison, data.comparison_csv);
     const section = add(results, 'section');
     add(section, 'h2', data.mode === 'agent' ? '근거 기반 답변' : '문서 근거 발췌');
     const sources = Object.fromEntries(data.sources.map(source => [source.id, source]));
